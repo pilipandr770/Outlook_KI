@@ -10,7 +10,7 @@ export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     try {
       setAdvisors(await listAdvisors());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load advisors");
+      setError(err instanceof Error ? err.message : "Berater konnten nicht geladen werden");
     }
   }
 

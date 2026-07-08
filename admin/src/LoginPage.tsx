@@ -15,7 +15,7 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
       await login(username, password);
       onLoggedIn();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Anmeldung fehlgeschlagen");
     } finally {
       setBusy(false);
     }
@@ -23,7 +23,7 @@ export function LoginPage({ onLoggedIn }: { onLoggedIn: () => void }) {
 
   return (
     <div className="page">
-      <h1>Kompass Assistant — Admin Login</h1>
+      <h1>Kompass Assistant — Admin-Anmeldung</h1>
       <form className="card inline" onSubmit={handleSubmit}>
         <label>Benutzername</label>
         <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus />
