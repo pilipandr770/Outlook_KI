@@ -1,0 +1,92 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, sans-serif;
+  --accent: #1a3c34;
+}
+
+body {
+  margin: 0;
+  background: #f6f5f2;
+  color: #1a1a1a;
+}
+
+.page {
+  max-width: 780px;
+  margin: 2rem auto;
+  padding: 0 1.25rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e0da;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.95rem;
+}
+
+label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+button {
+  background: var(--accent);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+button.secondary {
+  background: #888;
+}
+
+button.danger {
+  background: #a13a3a;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.connected { background: #dbeee0; color: #1a5c34; }
+.badge.pending { background: #f3e2c9; color: #8a5a1a; }
+
+.error {
+  color: #a13a3a;
+  font-size: 0.9rem;
+}
+
+form.inline {
+  display: grid;
+  gap: 0.25rem;
+}

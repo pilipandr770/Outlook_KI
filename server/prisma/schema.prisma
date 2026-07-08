@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Advisor {
+  id                   String        @id @default(cuid())
+  name                 String
+  directions           String // free-text description of specialty/focus area
+  whatsappNumber       String // E.164, where booking notifications are sent
+  calendarRefreshToken String? // encrypted MSAL refresh token
+  calendarUpn          String? // Outlook UPN/email once connected
+  calendarConnectedAt  DateTime?
+  active               Boolean       @default(true)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  appointments         Appointment[]
+}
+
+model KnowledgeDocument {
+  id         String   @id @default(cuid())
+  sourceType String // "page" | "post" | "service" | "event"
+  sourceId   Int // WordPress post/page ID, for upsert dedup
+  title      String
+  content    String
+  url        String?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([sourceType, sourceId])
+}
+
+model Conversation {
+  id               String            @id @default(cuid())
+  clientPhone      String            @unique
+  language         String? // last-detected language code, e.g. "de", "ru"
+  currentAdvisorId String?
+  state            Json              @default("{}")
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  messages         Message[]
+  appointments     Appointment[]
+  formSubmissions  FormSubmission[]
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  role           String // "user" | "assistant"
+  content        String
+  mediaType      String? // "text" | "audio"
+  createdAt      DateTime     @default(now())
+}
+
+model Appointment {
+  id             String       @id @default(cuid())
+  advisorId      String
+  advisor        Advisor      @relation(fields: [advisorId], references: [id])
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  graphEventId   String? // event ID in the advisor's Outlook calendar
+  startTime      DateTime
+  endTime        DateTime
+  topic          String
+  clientName     String
+  status         String       @default("pending") // pending | confirmed | cancelled
+  createdAt      DateTime     @default(now())
+}
+
+model FormSubmission {
+  id             String       @id @default(cuid())
+  token          String       @unique
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  formType       String
+  payload        Json?
+  submittedAt    DateTime?
+  createdAt      DateTime     @default(now())
+}
