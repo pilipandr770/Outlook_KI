@@ -71,3 +71,10 @@ export const getWhatsAppStatus = () => request<WhatsAppStatus>("/admin/api/whats
 export const connectWhatsApp = () => request<{ base64: string | null }>("/admin/api/whatsapp/connect", { method: "POST" });
 
 export const disconnectWhatsApp = () => request<void>("/admin/api/whatsapp/disconnect", { method: "POST" });
+
+export type AiProvider = "anthropic" | "mistral" | "openai";
+
+export const getSettings = () => request<{ aiProvider: AiProvider }>("/admin/api/settings");
+
+export const updateSettings = (aiProvider: AiProvider) =>
+  request<{ aiProvider: AiProvider }>("/admin/api/settings", { method: "PUT", body: JSON.stringify({ aiProvider }) });

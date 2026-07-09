@@ -71,6 +71,11 @@ model Appointment {
   createdAt      DateTime     @default(now())
 }
 
+model Settings {
+  id         String @id @default("singleton")
+  aiProvider String @default("anthropic") // "anthropic" | "mistral" | "openai"
+}
+
 model FormSubmission {
   id             String       @id @default(cuid())
   token          String       @unique

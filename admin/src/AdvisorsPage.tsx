@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Advisor, createAdvisor, deleteAdvisor, getCalendarAuthUrl, listAdvisors, logout, updateAdvisor } from "./api";
 import { WhatsAppPanel } from "./WhatsAppPanel";
+import { SettingsPanel } from "./SettingsPanel";
 
 export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -61,6 +62,7 @@ export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       {error && <p className="error">{error}</p>}
 
       <WhatsAppPanel />
+      <SettingsPanel />
 
       <h2>Berater</h2>
       <p style={{ color: "#555", fontSize: "0.9rem", marginTop: "-0.5rem" }}>

@@ -1,21 +1,40 @@
+import { db } from "../db";
 import { env } from "../env";
 import { AiProvider, HistoryMessage } from "./providers/types";
 
-let provider: AiProvider | undefined;
+export type ProviderName = "anthropic" | "mistral" | "openai";
 
-// Loaded lazily so a missing/misconfigured API key for the *unselected* provider
-// never blocks server startup (mirrors the calendar module's lazy-init fix).
-function getProvider(): AiProvider {
-  if (provider) return provider;
+const providerModules: Record<ProviderName, () => AiProvider> = {
+  anthropic: () => require("./providers/anthropicProvider").anthropicProvider,
+  mistral: () => require("./providers/mistralProvider").mistralProvider,
+  openai: () => require("./providers/openaiProvider").openaiProvider,
+};
 
-  if (env.aiProvider === "mistral") {
-    provider = require("./providers/mistralProvider").mistralProvider;
-  } else {
-    provider = require("./providers/anthropicProvider").anthropicProvider;
+const loadedProviders: Partial<Record<ProviderName, AiProvider>> = {};
+
+// Each provider's SDK client is constructed at module load time, so only require() the
+// one actually selected — avoids needing every provider's API key just to boot.
+function getProviderInstance(name: ProviderName): AiProvider {
+  if (!loadedProviders[name]) {
+    loadedProviders[name] = providerModules[name]();
   }
-  return provider!;
+  return loadedProviders[name]!;
+}
+
+export async function getCurrentProviderName(): Promise<ProviderName> {
+  const settings = await db.settings.findUnique({ where: { id: "singleton" } });
+  return (settings?.aiProvider as ProviderName | undefined) ?? env.aiProvider;
+}
+
+export async function setProviderName(name: ProviderName): Promise<void> {
+  await db.settings.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", aiProvider: name },
+    update: { aiProvider: name },
+  });
 }
 
 export async function converse(history: HistoryMessage[], knowledgeContext: string, conversationId: string): Promise<string> {
-  return getProvider().converse(history, knowledgeContext, conversationId);
+  const providerName = await getCurrentProviderName();
+  return getProviderInstance(providerName).converse(history, knowledgeContext, conversationId);
 }
