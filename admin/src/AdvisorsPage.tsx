@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Advisor, createAdvisor, deleteAdvisor, getCalendarAuthUrl, listAdvisors, logout, updateAdvisor } from "./api";
+import { WhatsAppPanel } from "./WhatsAppPanel";
 
 export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -45,7 +46,7 @@ export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   return (
     <div className="page">
       <div className="row">
-        <h1>Berater</h1>
+        <h1>Kompass Frankfurt — Verwaltung</h1>
         <button
           className="secondary"
           onClick={() => {
@@ -59,17 +60,36 @@ export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
       {error && <p className="error">{error}</p>}
 
+      <WhatsAppPanel />
+
+      <h2>Berater</h2>
+      <p style={{ color: "#555", fontSize: "0.9rem", marginTop: "-0.5rem" }}>
+        Lege hier die Berater an, die der Assistent im WhatsApp-Chat vorschlagen darf. Nach dem Anlegen auf „Outlook verbinden"
+        klicken, damit der Berater seinen Kalender einmalig freigibt — erst danach kann der Assistent für ihn Termine buchen.
+      </p>
+
       <form className="card inline" onSubmit={handleCreate}>
         <label>Name</label>
         <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+
         <label>Richtung / Spezialisierung</label>
         <input value={form.directions} onChange={(e) => setForm({ ...form, directions: e.target.value })} />
+        <small style={{ color: "#777" }}>
+          Kurze Beschreibung, z. B. „Finanzierung &amp; Förderung" — der Assistent nutzt das, um Kunden den passenden Berater
+          vorzuschlagen.
+        </small>
+
         <label>WhatsApp-Nummer (für Benachrichtigungen)</label>
         <input
           placeholder="+49..."
           value={form.whatsappNumber}
           onChange={(e) => setForm({ ...form, whatsappNumber: e.target.value })}
         />
+        <small style={{ color: "#777" }}>
+          Auf diese Nummer erhält der Berater eine WhatsApp-Nachricht, sobald ein Termin gebucht wurde. Mit Ländervorwahl, z. B.
+          +491234567890.
+        </small>
+
         <div style={{ marginTop: "1rem" }}>
           <button type="submit">Berater hinzufügen</button>
         </div>
@@ -85,6 +105,11 @@ export function AdvisorsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
               </span>
               <p style={{ margin: "0.25rem 0", color: "#555" }}>{a.directions}</p>
               <p style={{ margin: 0, fontSize: "0.85rem", color: "#777" }}>{a.whatsappNumber}</p>
+              {!a.calendarConnected && (
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.8rem", color: "#a15a1a" }}>
+                  Ohne Kalenderverbindung kann der Assistent für diesen Berater noch keine Termine buchen.
+                </p>
+              )}
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
               {!a.calendarConnected && <button onClick={() => handleConnectCalendar(a)}>Outlook verbinden</button>}

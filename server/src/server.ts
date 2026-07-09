@@ -4,6 +4,7 @@ import { env } from "./env";
 import { whatsappWebhookRouter } from "./whatsapp/webhook";
 import { authRouter } from "./admin/authMiddleware";
 import { advisorRouter } from "./admin/advisorRoutes";
+import { whatsappAdminRouter } from "./admin/whatsappRoutes";
 import { calendarOAuthRouter } from "./calendar/oauthRoutes";
 import { formRouter } from "./forms/formRoutes";
 import { scheduleKnowledgeSync, syncKnowledgeBase } from "./knowledge/wpSync";
@@ -23,6 +24,7 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use("/webhooks", whatsappWebhookRouter);
 app.use("/admin/auth", authRouter);
 app.use("/admin/api", advisorRouter);
+app.use("/admin/api", whatsappAdminRouter);
 app.use("/calendar", calendarOAuthRouter);
 app.use("/forms", formRouter);
 

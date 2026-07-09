@@ -33,3 +33,50 @@ export async function configureWebhook(webhookUrl: string): Promise<void> {
     },
   });
 }
+
+export interface WhatsAppStatus {
+  exists: boolean;
+  connectionStatus: "open" | "connecting" | "close" | "unknown";
+  ownerNumber: string | null;
+}
+
+export async function getWhatsAppStatus(): Promise<WhatsAppStatus> {
+  const { data } = await client.get("/instance/fetchInstances");
+  const instances = Array.isArray(data) ? data : [];
+  const mine = instances.find((i: { name?: string }) => i.name === env.evolutionInstanceName);
+  if (!mine) return { exists: false, connectionStatus: "unknown", ownerNumber: null };
+  return {
+    exists: true,
+    connectionStatus: mine.connectionStatus ?? "unknown",
+    ownerNumber: mine.ownerJid ? mine.ownerJid.split("@")[0] : null,
+  };
+}
+
+export interface QrCodeResult {
+  base64: string | null;
+}
+
+export async function connectWhatsAppInstance(webhookUrl: string): Promise<QrCodeResult> {
+  const status = await getWhatsAppStatus();
+
+  if (!status.exists) {
+    const { data } = await client.post("/instance/create", {
+      instanceName: env.evolutionInstanceName,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+    });
+    await configureWebhook(webhookUrl);
+    return { base64: data.qrcode?.base64 ?? null };
+  }
+
+  if (status.connectionStatus === "open") {
+    return { base64: null };
+  }
+
+  const { data } = await client.get(`/instance/connect/${env.evolutionInstanceName}`);
+  return { base64: data.base64 ?? null };
+}
+
+export async function disconnectWhatsAppInstance(): Promise<void> {
+  await client.delete(`/instance/logout/${env.evolutionInstanceName}`);
+}

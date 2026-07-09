@@ -59,3 +59,15 @@ export const updateAdvisor = (id: string, data: Partial<Advisor>) =>
 export const deleteAdvisor = (id: string) => request<void>(`/admin/api/advisors/${id}`, { method: "DELETE" });
 
 export const getCalendarAuthUrl = (id: string) => request<{ url: string }>(`/admin/api/advisors/${id}/calendar-auth-url`);
+
+export interface WhatsAppStatus {
+  exists: boolean;
+  connectionStatus: "open" | "connecting" | "close" | "unknown";
+  ownerNumber: string | null;
+}
+
+export const getWhatsAppStatus = () => request<WhatsAppStatus>("/admin/api/whatsapp/status");
+
+export const connectWhatsApp = () => request<{ base64: string | null }>("/admin/api/whatsapp/connect", { method: "POST" });
+
+export const disconnectWhatsApp = () => request<void>("/admin/api/whatsapp/disconnect", { method: "POST" });
