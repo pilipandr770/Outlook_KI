@@ -15,6 +15,9 @@ export const env = {
   evolutionApiUrl: process.env.EVOLUTION_API_URL ?? "",
   evolutionApiKey: process.env.EVOLUTION_API_KEY ?? "",
   evolutionInstanceName: process.env.EVOLUTION_INSTANCE_NAME ?? "kompass-assistant",
+  // Shared secret Evolution API sends back on every webhook call (as X-Webhook-Secret) so we can
+  // verify a request actually came from our own instance, not an arbitrary internet caller.
+  webhookSecret: process.env.WEBHOOK_SECRET ?? "",
 
   // Default/fallback provider used until an admin picks one in the panel (persisted in the
   // Settings table). Mistral is offered as an EU-hosted alternative for EU AI Act considerations;

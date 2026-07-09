@@ -2,6 +2,7 @@ import axios from "axios";
 import cron from "node-cron";
 import { env } from "../env";
 import { db } from "../db";
+import { logError } from "../logging";
 
 const EXCLUDED_TYPE_KEYS = new Set([
   "attachment",
@@ -131,6 +132,6 @@ export async function syncKnowledgeBase(): Promise<void> {
 export function scheduleKnowledgeSync(): void {
   // Daily at 06:00 Europe/Berlin
   cron.schedule("0 6 * * *", () => {
-    syncKnowledgeBase().catch((err) => console.error("Scheduled knowledge sync failed", err));
+    syncKnowledgeBase().catch((err) => logError("Scheduled knowledge sync failed", err));
   }, { timezone: "Europe/Berlin" });
 }

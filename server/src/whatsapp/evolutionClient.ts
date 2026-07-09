@@ -30,6 +30,9 @@ export async function configureWebhook(webhookUrl: string): Promise<void> {
       url: webhookUrl,
       enabled: true,
       events: ["MESSAGES_UPSERT"],
+      // Evolution API echoes these back as headers on every webhook POST it sends us, letting
+      // our handler verify the request actually came from this instance (see webhook.ts).
+      headers: env.webhookSecret ? { "X-Webhook-Secret": env.webhookSecret } : undefined,
     },
   });
 }
