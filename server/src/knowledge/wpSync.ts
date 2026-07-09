@@ -42,10 +42,37 @@ interface WpEntity {
   excerpt?: { rendered: string };
 }
 
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&",
+  nbsp: " ",
+  quot: '"',
+  apos: "'",
+  lt: "<",
+  gt: ">",
+};
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCodePoint(parseInt(dec, 10)))
+    .replace(/&([a-z]+);/gi, (match, name) => NAMED_ENTITIES[name.toLowerCase()] ?? match);
+}
+
 function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, " ")
-    .replace(/&nbsp;/g, " ")
+  return decodeEntities(
+    html
+      // <style>/<script> tag-stripping alone leaves their text content behind as visible
+      // "content" — the page builder inlines a <style> block with raw CSS on most pages
+      // (confirmed: Kontakt/Angebot page text literally started with ".vcex_...{height:80px;}").
+      // Remove the whole block, not just the tags.
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      // The site's page builder (WPBakery/Visual Composer) leaves raw [vc_row]/[vcex_...]
+      // shortcode syntax in `content.rendered` on most pages — confirmed 23/34 pages affected,
+      // including Kontakt/Angebot/Events. Strip shortcode tags before/after HTML tag removal.
+      .replace(/\[\/?[a-z_][a-z0-9_-]*(?:\s[^\]]*)?\]/gi, " ")
+  )
     .replace(/\s+/g, " ")
     .trim();
 }
