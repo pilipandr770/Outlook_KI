@@ -10,9 +10,12 @@ function keywords(text: string): string[] {
     .filter((w) => w.length > 3 && !STOPWORDS.has(w));
 }
 
-export async function relevantKnowledge(userMessage: string, limit = 5): Promise<string> {
+export async function relevantKnowledge(userMessage: string, limit = 6): Promise<string> {
   const terms = keywords(userMessage);
-  const all = await db.knowledgeDocument.findMany({ take: 200, orderBy: { updatedAt: "desc" } });
+  // No take() cap — corpus is ~250 documents, small enough to score in full. The previous
+  // `take: 200` cap silently dropped ~36 documents from every relevance search once the site
+  // sync grew past that count.
+  const all = await db.knowledgeDocument.findMany({ orderBy: { updatedAt: "desc" } });
 
   const scored = all
     .map((doc) => {
@@ -31,7 +34,35 @@ export async function relevantKnowledge(userMessage: string, limit = 5): Promise
     .join("\n\n");
 }
 
-export async function serviceCatalogSummary(): Promise<string> {
+const SOURCE_LABELS: Record<string, string> = {
+  posts: "News/Beiträge",
+  pages: "Seiten",
+  tribe_events: "Events",
+  tribe_organizer: "Organisatoren",
+  tribe_venue: "Veranstaltungsorte",
+};
+
+async function fullTopicCatalog(): Promise<string> {
   const docs = await db.knowledgeDocument.findMany({ orderBy: { title: "asc" } });
-  return docs.map((d) => `- ${d.title}`).join("\n");
+  const bySourceType = new Map<string, string[]>();
+  for (const doc of docs) {
+    const list = bySourceType.get(doc.sourceType) ?? [];
+    list.push(doc.title);
+    bySourceType.set(doc.sourceType, list);
+  }
+  return [...bySourceType.entries()]
+    .map(([sourceType, titles]) => `${SOURCE_LABELS[sourceType] ?? sourceType} (${titles.length}):\n${titles.map((t) => `- ${t}`).join("\n")}`)
+    .join("\n\n");
+}
+
+// Combines a full title catalog (so the assistant knows the true breadth of what it has —
+// without this, it only ever saw the ~5-6 documents relevantKnowledge() matched for the
+// current question and would describe THAT narrow slice as "everything I know about the site")
+// with detailed excerpts for the current question.
+export async function buildKnowledgeContext(userMessage: string): Promise<string> {
+  const [catalog, excerpts] = await Promise.all([fullTopicCatalog(), relevantKnowledge(userMessage)]);
+  return (
+    `## Vollständige Themenübersicht (Titel aller Seiten/Beiträge/Events von der Website)\n${catalog}\n\n` +
+    `## Detaillierte Auszüge zum aktuellen Anliegen des Kunden\n${excerpts}`
+  );
 }

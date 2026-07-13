@@ -1,6 +1,6 @@
 import { db } from "../db";
 import { converse } from "../ai";
-import { relevantKnowledge } from "../knowledge/retrieve";
+import { buildKnowledgeContext } from "../knowledge/retrieve";
 import { sendReply, ChannelName } from "../channels";
 
 const HISTORY_WINDOW = 20;
@@ -27,7 +27,7 @@ export async function handleIncomingMessage(
     take: HISTORY_WINDOW,
   });
 
-  const knowledge = await relevantKnowledge(text);
+  const knowledge = await buildKnowledgeContext(text);
 
   const reply = await converse(
     historyRows.map((m) => ({ role: m.role as "user" | "assistant", content: m.content })),
