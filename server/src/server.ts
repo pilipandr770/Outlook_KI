@@ -2,6 +2,8 @@ import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import { env } from "./env";
 import { whatsappWebhookRouter } from "./whatsapp/webhook";
+import { telegramWebhookRouter } from "./telegram/webhook";
+import { setWebhook as setTelegramWebhook } from "./telegram/telegramClient";
 import { authRouter } from "./admin/authMiddleware";
 import { advisorRouter } from "./admin/advisorRoutes";
 import { whatsappAdminRouter } from "./admin/whatsappRoutes";
@@ -24,6 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 app.use("/webhooks", whatsappWebhookRouter);
+app.use("/webhooks", telegramWebhookRouter);
 app.use("/admin/auth", authRouter);
 app.use("/admin/api", advisorRouter);
 app.use("/admin/api", whatsappAdminRouter);
@@ -45,4 +48,10 @@ app.listen(env.port, () => {
   console.log(`Kompass Assistant server listening on port ${env.port}`);
   scheduleKnowledgeSync();
   syncKnowledgeBase().catch((err) => logError("Initial knowledge sync failed", err));
+
+  if (env.telegramBotToken) {
+    setTelegramWebhook(`${env.publicBaseUrl}/webhooks/telegram`).catch((err) =>
+      logError("Failed to register Telegram webhook", err)
+    );
+  }
 });

@@ -19,6 +19,10 @@ export const env = {
   // verify a request actually came from our own instance, not an arbitrary internet caller.
   webhookSecret: process.env.WEBHOOK_SECRET ?? "",
 
+  // Telegram is offered as a second channel alongside WhatsApp — official Bot API, doesn't share
+  // WhatsApp Web's connection-limit/ban fragility, same conversation engine underneath.
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
+
   // Default/fallback provider used until an admin picks one in the panel (persisted in the
   // Settings table). Mistral is offered as an EU-hosted alternative for EU AI Act considerations;
   // all three share the same conversation/tool-calling architecture, just a different backend.

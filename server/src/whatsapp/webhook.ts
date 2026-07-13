@@ -64,13 +64,13 @@ whatsappWebhookRouter.post("/whatsapp", async (req, res) => {
     if (data.message?.audioMessage) {
       const base64 = await fetchMediaBase64(data.key);
       const text = await transcribeAudio(Buffer.from(base64, "base64"), data.message.audioMessage.mimetype);
-      await handleIncomingMessage(clientPhone, text, "audio");
+      await handleIncomingMessage("whatsapp", clientPhone, text, "audio");
       return;
     }
 
     const text = data.message?.conversation ?? data.message?.extendedTextMessage?.text;
     if (text) {
-      await handleIncomingMessage(clientPhone, text, "text");
+      await handleIncomingMessage("whatsapp", clientPhone, text, "text");
     }
   } catch (err) {
     logError("Failed to process incoming WhatsApp message", err);

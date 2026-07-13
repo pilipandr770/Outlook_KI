@@ -35,7 +35,8 @@ model KnowledgeDocument {
 
 model Conversation {
   id               String            @id @default(cuid())
-  clientPhone      String            @unique
+  channel          String            @default("whatsapp") // "whatsapp" | "telegram"
+  clientId         String            // phone number (WhatsApp) or chat id (Telegram)
   language         String? // last-detected language code, e.g. "de", "ru"
   currentAdvisorId String?
   state            Json              @default("{}")
@@ -44,6 +45,8 @@ model Conversation {
   messages         Message[]
   appointments     Appointment[]
   formSubmissions  FormSubmission[]
+
+  @@unique([channel, clientId])
 }
 
 model Message {

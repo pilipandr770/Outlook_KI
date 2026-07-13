@@ -1,14 +1,19 @@
 import { db } from "../db";
 import { converse } from "../ai";
 import { relevantKnowledge } from "../knowledge/retrieve";
-import { sendText } from "../whatsapp/evolutionClient";
+import { sendReply, ChannelName } from "../channels";
 
 const HISTORY_WINDOW = 20;
 
-export async function handleIncomingMessage(clientPhone: string, text: string, mediaType: "text" | "audio"): Promise<void> {
+export async function handleIncomingMessage(
+  channel: ChannelName,
+  clientId: string,
+  text: string,
+  mediaType: "text" | "audio"
+): Promise<void> {
   const conversation = await db.conversation.upsert({
-    where: { clientPhone },
-    create: { clientPhone },
+    where: { channel_clientId: { channel, clientId } },
+    create: { channel, clientId },
     update: {},
   });
 
@@ -36,5 +41,5 @@ export async function handleIncomingMessage(clientPhone: string, text: string, m
     data: { conversationId: conversation.id, role: "assistant", content: reply, mediaType: "text" },
   });
 
-  await sendText(clientPhone, reply);
+  await sendReply(channel, clientId, reply);
 }
