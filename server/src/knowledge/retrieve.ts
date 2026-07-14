@@ -55,14 +55,33 @@ async function fullTopicCatalog(): Promise<string> {
     .join("\n\n");
 }
 
+// Keyword-matched relevantKnowledge() scores badly against date-shaped questions ("this week",
+// "today", "in December") since those words don't appear in any specific event's title/content —
+// confirmed live: asking "what's happening this week" retrieved zero tribe_events documents even
+// though 40+ have real dates. Always include the next N chronologically, independent of keywords.
+async function upcomingEvents(limit = 15): Promise<string> {
+  const events = await db.knowledgeDocument.findMany({
+    where: { sourceType: "tribe_events", eventDate: { gte: new Date() } },
+    orderBy: { eventDate: "asc" },
+    take: limit,
+  });
+  if (events.length === 0) return "(keine anstehenden Termine gefunden)";
+  return events.map((e) => `### ${e.title}\n${e.content}`).join("\n\n");
+}
+
 // Combines a full title catalog (so the assistant knows the true breadth of what it has —
 // without this, it only ever saw the ~5-6 documents relevantKnowledge() matched for the
-// current question and would describe THAT narrow slice as "everything I know about the site")
-// with detailed excerpts for the current question.
+// current question and would describe THAT narrow slice as "everything I know about the site"),
+// a chronological upcoming-events list, and detailed excerpts for the current question.
 export async function buildKnowledgeContext(userMessage: string): Promise<string> {
-  const [catalog, excerpts] = await Promise.all([fullTopicCatalog(), relevantKnowledge(userMessage)]);
+  const [catalog, upcoming, excerpts] = await Promise.all([
+    fullTopicCatalog(),
+    upcomingEvents(),
+    relevantKnowledge(userMessage),
+  ]);
   return (
     `## Vollständige Themenübersicht (Titel aller Seiten/Beiträge/Events von der Website)\n${catalog}\n\n` +
+    `## Anstehende Termine (chronologisch, mit Datum/Uhrzeit/Ort)\n${upcoming}\n\n` +
     `## Detaillierte Auszüge zum aktuellen Anliegen des Kunden\n${excerpts}`
   );
 }

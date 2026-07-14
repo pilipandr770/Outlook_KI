@@ -22,13 +22,14 @@ model Advisor {
 }
 
 model KnowledgeDocument {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   sourceType String // "page" | "post" | "service" | "event"
   sourceId   Int // WordPress post/page ID, for upsert dedup
   title      String
   content    String
   url        String?
-  updatedAt  DateTime @updatedAt
+  eventDate  DateTime? // start date/time, tribe_events only — lets us sort/filter "upcoming"
+  updatedAt  DateTime  @updatedAt
 
   @@unique([sourceType, sourceId])
 }

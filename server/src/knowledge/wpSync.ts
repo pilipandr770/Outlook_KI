@@ -146,8 +146,9 @@ interface TribeEvent {
   title: string;
   description?: string;
   url: string;
-  start_date: string; // "YYYY-MM-DD HH:MM:SS", already in event-local time
+  start_date: string; // "YYYY-MM-DD HH:MM:SS", already in event-local time — for display only
   end_date: string;
+  utc_start_date: string; // "YYYY-MM-DD HH:MM:SS" in UTC — unambiguous, used for sorting/filtering
   all_day: boolean;
   cost?: string;
   venue?: { venue?: string; address?: string; city?: string };
@@ -197,10 +198,11 @@ async function syncTribeEvents(): Promise<number> {
       .join("\n");
 
     seenIds.push(e.id);
+    const eventDate = new Date(`${e.utc_start_date.replace(" ", "T")}Z`);
     await db.knowledgeDocument.upsert({
       where: { sourceType_sourceId: { sourceType: "tribe_events", sourceId: e.id } },
-      create: { sourceType: "tribe_events", sourceId: e.id, title: decodeEntities(e.title), content, url: e.url },
-      update: { title: decodeEntities(e.title), content, url: e.url },
+      create: { sourceType: "tribe_events", sourceId: e.id, title: decodeEntities(e.title), content, url: e.url, eventDate },
+      update: { title: decodeEntities(e.title), content, url: e.url, eventDate },
     });
   }
 
