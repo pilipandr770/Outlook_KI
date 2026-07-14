@@ -13,6 +13,11 @@ const EXCLUDED_TYPE_KEYS = new Set([
   "wpex_templates", // theme page-builder templates (e.g. the 404 page), not real content
   "wpex_card", // theme page-builder cards containing raw unrendered shortcodes
   "tec_calendar_embed", // calendar embed widget config, not descriptive content
+  // The generic wp/v2/tribe_events endpoint has no date/time fields at all — confirmed the
+  // assistant telling a real user it only had unreadable internal codes, not real dates.
+  // Synced separately via syncTribeEvents() using the Events Calendar plugin's own REST API,
+  // which exposes start/end date, venue+address, cost, and organizer.
+  "tribe_events",
 ]);
 
 interface WpType {
@@ -136,6 +141,76 @@ async function syncType(type: WpType): Promise<number> {
   return seenIds.length;
 }
 
+interface TribeEvent {
+  id: number;
+  title: string;
+  description?: string;
+  url: string;
+  start_date: string; // "YYYY-MM-DD HH:MM:SS", already in event-local time
+  end_date: string;
+  all_day: boolean;
+  cost?: string;
+  venue?: { venue?: string; address?: string; city?: string };
+  organizer?: { organizer?: string; email?: string }[];
+}
+
+function formatEventDateRange(startDate: string, endDate: string, allDay: boolean): string {
+  const [startDay, startTime] = startDate.split(" ");
+  const [endDay, endTime] = endDate.split(" ");
+  const fmt = (d: string) => d.split("-").reverse().join(".");
+
+  if (allDay) return startDay === endDay ? `${fmt(startDay)} (ganztägig)` : `${fmt(startDay)} – ${fmt(endDay)} (ganztägig)`;
+  if (startDay === endDay) return `${fmt(startDay)}, ${startTime.slice(0, 5)}–${endTime.slice(0, 5)} Uhr`;
+  return `${fmt(startDay)} ${startTime.slice(0, 5)} Uhr – ${fmt(endDay)} ${endTime.slice(0, 5)} Uhr`;
+}
+
+async function fetchAllTribeEvents(): Promise<TribeEvent[]> {
+  const all: TribeEvent[] = [];
+  let page = 1;
+  for (;;) {
+    const { data } = await axios.get(`${env.wordpressSiteUrl}/wp-json/tribe/events/v1/events`, {
+      params: { per_page: 50, page },
+    });
+    all.push(...data.events);
+    if (page >= data.total_pages || data.events.length === 0) break;
+    page += 1;
+  }
+  return all;
+}
+
+async function syncTribeEvents(): Promise<number> {
+  const events = await fetchAllTribeEvents();
+  const seenIds: number[] = [];
+
+  for (const e of events) {
+    const venueParts = [e.venue?.venue, e.venue?.address, e.venue?.city].filter(Boolean);
+    const organizer = e.organizer?.[0];
+
+    const content = [
+      `Termin: ${formatEventDateRange(e.start_date, e.end_date, e.all_day)}`,
+      venueParts.length > 0 && `Ort: ${venueParts.join(", ")}`,
+      e.cost && `Kosten: ${e.cost}`,
+      organizer?.organizer && `Veranstalter: ${organizer.organizer}${organizer.email ? ` (${organizer.email})` : ""}`,
+      stripHtml(e.description ?? ""),
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    seenIds.push(e.id);
+    await db.knowledgeDocument.upsert({
+      where: { sourceType_sourceId: { sourceType: "tribe_events", sourceId: e.id } },
+      create: { sourceType: "tribe_events", sourceId: e.id, title: decodeEntities(e.title), content, url: e.url },
+      update: { title: decodeEntities(e.title), content, url: e.url },
+    });
+  }
+
+  await db.knowledgeDocument.deleteMany({
+    where: { sourceType: "tribe_events", sourceId: { notIn: seenIds } },
+  });
+
+  return seenIds.length;
+}
+
 export async function syncKnowledgeBase(): Promise<void> {
   const types = await discoverContentTypes();
   let total = 0;
@@ -148,12 +223,22 @@ export async function syncKnowledgeBase(): Promise<void> {
     }
   }
 
+  let typeCount = types.length;
+  try {
+    total += await syncTribeEvents();
+    typeCount += 1;
+  } catch (err) {
+    const detail = axios.isAxiosError(err) ? `${err.response?.status} ${err.response?.statusText}` : String(err);
+    console.error(`Knowledge sync failed for tribe_events (dedicated endpoint): ${detail}`);
+  }
+
   // One-time-per-run cleanup: drop any leftover documents from types no longer synced at all
   // (e.g. a type that got explicitly excluded, or a plugin that was removed from the site).
-  const activeSourceTypes = types.map((t) => t.rest_base);
+  // tribe_events is synced separately above (dedicated endpoint), not part of `types`.
+  const activeSourceTypes = [...types.map((t) => t.rest_base), "tribe_events"];
   await db.knowledgeDocument.deleteMany({ where: { sourceType: { notIn: activeSourceTypes } } });
 
-  console.log(`Knowledge base sync complete: ${total} documents across ${types.length} content types`);
+  console.log(`Knowledge base sync complete: ${total} documents across ${typeCount} content types`);
 }
 
 export function scheduleKnowledgeSync(): void {
